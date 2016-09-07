@@ -50,6 +50,13 @@ void DexFileParser::dexParseFile()
 	dex_file->pLinkData = (DexLink*)(dex + header->linkOff);
 
 #if 1
+	dumpDexHeader(header);
+
+	dumpMapList((DexMapList*)(dex + header->mapOff));
+	printf("\n");
+	printf("\n");
+
+#if 0
 
 	const char* str = getStringById(dex_file, 6);
 	printf("String(6): %s\n", str);
@@ -82,17 +89,13 @@ void DexFileParser::dexParseFile()
 					getStringById(dex_file, type->descriptorIdx));
 		}
 	printf("\n");
-
-//	for(int i = 0; i < header->classDefsSize; i++) {
-		dumpClass(882);
-//	}
+#endif
 
 
-	printf("\n");
-	printf("\n");
-	dumpDexHeader(header);
+	for(int i = 0; i < header->classDefsSize; i++) {
+		dumpClass(i);
+	}
 
-	dumpMapList((DexMapList*)(dex + header->mapOff));
 #endif
 }
 
@@ -179,7 +182,7 @@ void DexFileParser::dumpClass(int idx)
 {
 	DexClassDef* class_def = getClassDef(dex_file, idx);
 	const char* class_str = getStringByTypeId(dex_file, class_def->classIdx);
-#if 1
+#if 0
 	if (strstr(class_str, "Lcom/example/cert") == NULL)
 		return;
 #endif
