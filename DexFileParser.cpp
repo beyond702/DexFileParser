@@ -1,13 +1,14 @@
 #include "DexFileParser.h"
 #include "DexProto.h"
 #include "Leb128.h"
+#include "DexCatch.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 
 DexFileParser::DexFileParser(const char* dex_cont, int dex_len)
-	: dex_len(dex_len), dex_file(NULL)
+	: dex_file(NULL)
 {
 	dex = (char*)malloc(dex_len);
 	memcpy(dex, dex_cont, dex_len);
@@ -252,6 +253,8 @@ void DexFileParser::dumpMethod(DexMethod* method)
 		printf("\t\t\tinsns[%d]: %X\n", i, code->insns[i]);
 #endif
 
+	dumpCatches(code);
+
 	dumpPositions(code, method);
 	dumpLocals(code, method);
 }
@@ -263,6 +266,48 @@ void DexFileParser::dumpCode(DexCode* code)
 			code->triesSize, code->debugInfoOff, code->insnsSize);
 }
 
+void DexFileParser::dumpCatches(DexCode* code)
+{
+	printf("\t\tcatches:\n");
+
+	u4 triesSize = code->triesSize;
+	if(triesSize == 0) {
+		return;
+	}
+
+	const u2* ptr = &code->insns[code->insnsSize];
+	if(((uintptr_t)ptr & 0x3) != 0)
+		ptr++;
+
+	const DexTry* pDexTries = (const DexTry*)ptr;
+
+	for(u4 i = 0; i < code->triesSize; i++) {
+		const DexTry* pDexTry = &pDexTries[i];
+		u4 startAddr = pDexTry->startAddr;
+		u4 endAddr = startAddr + pDexTry->insnCount;
+
+		printf("\t\t\t0x%04X - 0x%04X\n", startAddr, endAddr);
+
+		DexCatchIterator iterator;
+		iterator.pEncodedData = (const u1*)(&pDexTries[code->triesSize]) + pDexTry->handlerOff;
+		int count = readUnsignedLeb128(&iterator.pEncodedData);
+		if(count <= 0)
+			iterator.catchesAll = true;
+		else
+			iterator.catchesAll = false;
+		iterator.countRemaining = count;
+
+		for(;;) {
+			DexCatchHandler* handler = dexCatchIteratorNext(&iterator);
+			if(handler == NULL)
+				break;
+
+			const char* descriptor = (handler->typeIdx == kDexNoIndex) ? "<any>" :
+					getStringByTypeId(dex_file, handler->typeIdx);
+			printf("\t\t\t\thandler(%s), addr(0x%04X)\n", descriptor, handler->address);
+		}
+	}
+}
 
 void DexFileParser::dumpPositions(DexCode* code, DexMethod* method)
 {

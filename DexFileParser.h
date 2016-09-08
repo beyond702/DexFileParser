@@ -26,6 +26,8 @@ public:
 
 	void dumpCode(DexCode* code);
 
+	void dumpCatches(DexCode* code);
+
 	void dumpPositions(DexCode* code, DexMethod* method);
 
 	void dumpLocals(DexCode* code, DexMethod* method);
@@ -42,8 +44,6 @@ private:
 private:
 
 	char* dex;
-
-	int dex_len;
 
 	DexFile* dex_file;
 };
